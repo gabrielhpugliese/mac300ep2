@@ -40,14 +40,40 @@ def convolution(x, y, img, factor):
 def soften_avg(x, y, img):
     value = img[x][y]
     factor = 0
+    value += img[x - 1][y - 1] * 1 / 16
+    value += img[x - 1][y] * 2 / 16
+    value += img[x - 1][y + 1] * 1 / 16
+    value += img[x][y - 1] * 2 / 16
+    value += img[x][y] * 4 / 16
+    value += img[x][y + 1] * 2 / 16
+    value += img[x + 1][y - 1] * 1 / 16
+    value += img[x + 1][y] * 2 / 16
+    value += img[x + 1][y + 1] * 1 / 16
+
+    if value > 255:
+        value = 255
+    elif value < 0:
+        value = 0
+    return value
+
+
+def laplacian(x, y, img, signal):
+    a = img[x + 1][y]
+    b = img[x - 1][y]
+    c = img[x][y + 1]
+    d = img[x][y - 1]
+    return signal * (a + b + c + d + 4 * img[x][y])
+
+
+def laplacian_mask(x, y, img):
+    value = img[x][y] * 8
+    factor = -1
     for s in xrange(-1, 2):
         for t in xrange(-1, 2):
-            if s + t == -2 or s + t == 2 or (s + t == 0 and (s, t) != (0, 0)):
-                factor = 1 / 16
-            elif (s, t) != (0, 0):
-                factor = 2 / 16
+            if s != 0 or t != 0:
+                factor = -1
             else:
-                factor = 4 / 16
+                continue
             value += img[x + s][y + t] * factor
 
     if value > 255:
@@ -61,8 +87,8 @@ class Transformation(object):
 
     def __init__(self, img):
         self.img = img
-        self.largura = img.shape[0]
-        self.altura = img.shape[1]
+        self.altura = img.shape[0]
+        self.largura = img.shape[1]
         self.out = numpy.zeros((self.altura, self.largura))
 
     def contrast(self):
@@ -76,11 +102,14 @@ class Transformation(object):
     def blur(self):
         for x in xrange(1, self.altura - 1):
             for y in xrange(1, self.largura - 1):
-#                self.out[x][y] = convolution(x, y, self.img, 0.1)
-                self.out[x][y] = soften_avg(x, y, self.img)
+                self.out[x][y] = convolution(x, y, self.img, 0.1)
+#                self.out[x][y] = soften_avg(x, y, self.img)
 
     def sharpen(self):
-        pass
+        for x in xrange(1, self.altura - 1):
+            for y in xrange(1, self.largura - 1):
+#                self.out[x][y] = laplacian(x, y, self.img, 1)
+                self.out[x][y] = laplacian_mask(x, y, self.img)
 
 
 def main():
@@ -88,7 +117,7 @@ def main():
                                     ['contrast', 'blur', 'sharpen'])
     filename = sys.argv[-1]
     filename_out = filename.split('.')[0] + '-final.' + filename.split('.')[-1]
-    img = misc.imread(filename)
+    img = misc.imread(filename, flatten=True)
     transformation = Transformation(img)
 
     # Roda o metodo
