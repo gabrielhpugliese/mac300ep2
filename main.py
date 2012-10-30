@@ -2,15 +2,28 @@ import getopt
 import sys
 import numpy
 from scipy import misc
+from pylab import plot, savefig, xlabel, ylabel, bar
+from decorators import time_measure
+
+
+HISTOGRAM_SIZE = 257
+
+
+def plot_freq(frequencia):
+    plot(range(0, HISTOGRAM_SIZE), frequencia)
 
 
 def freq_abs_acumulada(img, largura, altura):
-    tamanho = 256
+    tamanho = HISTOGRAM_SIZE
     frequencia = numpy.zeros(tamanho)
 
     for i in xrange(altura):
         for j in xrange(largura):
-            frequencia[img[i][j]] += 1
+            try:
+                frequencia[img[i][j]] += 1
+            except Exception, e:
+                print img[i][j]
+                raise e
 
     acumulado = 0
     for i in xrange(tamanho):
@@ -39,7 +52,6 @@ def convolution(x, y, img, factor):
 
 def soften_avg(x, y, img):
     value = img[x][y]
-    factor = 0
     value += img[x - 1][y - 1] * 1 / 16
     value += img[x - 1][y] * 2 / 16
     value += img[x - 1][y + 1] * 1 / 16
@@ -57,24 +69,17 @@ def soften_avg(x, y, img):
     return value
 
 
-def laplacian(x, y, img, signal):
-    a = img[x + 1][y]
-    b = img[x - 1][y]
-    c = img[x][y + 1]
-    d = img[x][y - 1]
-    return signal * (a + b + c + d + 4 * img[x][y])
-
-
 def laplacian_mask(x, y, img):
-    value = img[x][y] * 8
-    factor = -1
-    for s in xrange(-1, 2):
-        for t in xrange(-1, 2):
-            if s != 0 or t != 0:
-                factor = -1
-            else:
-                continue
-            value += img[x + s][y + t] * factor
+    value = img[x][y]
+    value += img[x][y] * 8
+    value += img[x - 1][y - 1] * -1
+    value += img[x - 1][y] * -1
+    value += img[x - 1][y + 1] * -1
+    value += img[x][y - 1] * -1
+    value += img[x][y + 1] * -1
+    value += img[x + 1][y - 1] * -1
+    value += img[x + 1][y] * -1
+    value += img[x + 1][y + 1] * -1
 
     if value > 255:
         value = 255
@@ -91,24 +96,30 @@ class Transformation(object):
         self.largura = img.shape[1]
         self.out = numpy.zeros((self.altura, self.largura))
 
+    @time_measure
     def contrast(self):
         frequencia = freq_abs_acumulada(self.img, self.largura, self.altura)
+#        plot_freq(frequencia)
         xmin = numpy.amin(frequencia)
         for i in xrange(self.altura):
             for j in xrange(self.largura):
                 self.out[i][j] = equalize(self.img[i][j], frequencia, xmin,
                                           (self.largura * self.altura))
+        frequencia = freq_abs_acumulada(self.out, self.largura, self.altura)
+#        plot_freq(frequencia)
+#        savefig('frequencias.png')
 
+    @time_measure
     def blur(self):
         for x in xrange(1, self.altura - 1):
             for y in xrange(1, self.largura - 1):
                 self.out[x][y] = convolution(x, y, self.img, 0.1)
 #                self.out[x][y] = soften_avg(x, y, self.img)
 
+    @time_measure
     def sharpen(self):
         for x in xrange(1, self.altura - 1):
             for y in xrange(1, self.largura - 1):
-#                self.out[x][y] = laplacian(x, y, self.img, 1)
                 self.out[x][y] = laplacian_mask(x, y, self.img)
 
 
