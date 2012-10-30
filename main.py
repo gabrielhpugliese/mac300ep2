@@ -19,11 +19,7 @@ def freq_abs_acumulada(img, largura, altura):
 
     for i in xrange(altura):
         for j in xrange(largura):
-            try:
-                frequencia[img[i][j]] += 1
-            except Exception, e:
-                print img[i][j]
-                raise e
+            frequencia[img[i][j]] += 1
 
     acumulado = 0
     for i in xrange(tamanho):
