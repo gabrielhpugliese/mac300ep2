@@ -48,11 +48,11 @@ def convolution(x, y, img, factor):
 
 def soften_avg(x, y, img):
     value = img[x][y]
+    value += img[x][y] * 4 / 16
     value += img[x - 1][y - 1] * 1 / 16
     value += img[x - 1][y] * 2 / 16
     value += img[x - 1][y + 1] * 1 / 16
     value += img[x][y - 1] * 2 / 16
-    value += img[x][y] * 4 / 16
     value += img[x][y + 1] * 2 / 16
     value += img[x + 1][y - 1] * 1 / 16
     value += img[x + 1][y] * 2 / 16
@@ -109,8 +109,8 @@ class Transformation(object):
     def blur(self):
         for x in xrange(1, self.altura - 1):
             for y in xrange(1, self.largura - 1):
-                self.out[x][y] = convolution(x, y, self.img, 0.1)
-#                self.out[x][y] = soften_avg(x, y, self.img)
+#                self.out[x][y] = convolution(x, y, self.img, 1)
+                self.out[x][y] = soften_avg(x, y, self.img)
 
     @time_measure
     def sharpen(self):
